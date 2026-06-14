@@ -26,13 +26,35 @@ source .venv/bin/activate  # On Linux/Mac
 pip install bleak
 ```
 
-### 3. Usage
+## Usage
 1. Turn on your Apitor robot (ensure the blue LED is flashing).
 2. Run the application:
    ```bash
    python apitor_gui.py
    ```
-3. Click **CONNECT** in the window.
+3. Click **SCAN FOR ROBOT** to find your device, then **CONNECT**.
+
+### Keyboard Shortcuts
+- **W / S:** Move Forward / Backward
+- **A / D:** Turn Left / Right
+- **Space:** Stop All Motors
+- **1 - 8:** Quick Change LED Colors (Off, Red, Orange, etc.)
+
+
+## Testing
+To ensure the code is not broken, you can run the following checks:
+
+### 1. Syntax Check
+Verifies that the code is free of Python syntax errors:
+```bash
+python check_syntax.py
+```
+
+### 2. Unit Tests
+Verifies the robot logic (speed clamping, inversion, etc.):
+```bash
+python test_apitor_robot.py
+```
 
 ## Troubleshooting
 - **Connection Failed:** Ensure no other app (like the official Apitor app) is currently connected to the robot.

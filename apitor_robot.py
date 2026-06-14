@@ -21,6 +21,7 @@ class ApitorRobot:
         self.client = None
         self.connected = False
         self.on_sensor_data = None  # Callback function for sensor updates (type, value)
+        self.on_log = None          # Callback for logging traffic (direction, message)
         
         # State tracking
         self.m_speeds = [0, 0] # M1, M2
@@ -41,10 +42,8 @@ class ApitorRobot:
 
     async def scan(self):
         """Scan for nearby Apitor robots and return the address of the first one found."""
-        print("Scanning for Apitor robots...")
         devices = await BleakScanner.discover()
         for d in devices:
-            # Look for common names used by Apitor modules
             if d.name and any(x in d.name for x in ["Apitor", "Nordic", "TUDAO"]):
                 return d.address
         return None
@@ -55,8 +54,14 @@ class ApitorRobot:
             await self.client.connect()
             
             await self.client.start_notify(self.RX_UUID, self._notification_handler)
+            
+            # Step 1: Authentication
+            if self.on_log: self.on_log("TX", self.AUTH_SEQ.hex())
             await self.client.write_gatt_char(self.WRITE_UUID, self.AUTH_SEQ)
             await asyncio.sleep(0.3)
+            
+            # Step 2: Protocol Initialization
+            if self.on_log: self.on_log("TX", self.HANDSHAKE_FFFE.hex())
             await self.client.write_gatt_char(self.WRITE_UUID, self.HANDSHAKE_FFFE)
             
             self.connected = True
@@ -75,15 +80,15 @@ class ApitorRobot:
         Parses incoming data packets from the robot.
         Standard frame: FF FE [Len] [Cmd] ... FD FC
         """
+        if self.on_log:
+            self.on_log("RX", data.hex())
+
         if len(data) < 6 or data[0] != 0xFF or data[1] != 0xFE:
             return
 
         cmd_type = data[2]
         
         if cmd_type == 0x06: # Sensor update
-            # Index 5: Battery level
-            # Index 7: IR Sensor 1
-            # Index 8: IR Sensor 2
             self.battery = data[5]
             ir1 = data[7] if len(data) > 7 else 0
             ir2 = data[8] if len(data) > 8 else 0
@@ -94,19 +99,13 @@ class ApitorRobot:
                 self.on_sensor_data("ir2", ir2)
 
     def set_led(self, led_index, color_index):
-        """
-        Set color for an LED (0-3). Colors: 0:Off, 1:Red, 2:Orange, 3:Yellow, 4:Green, 5:Cyan, 6:Blue, 7:Violet.
-        """
+        """Set color for an LED (0-3)."""
         if 0 <= led_index < 4:
             self.led_colors[led_index] = color_index
             self._sync_state()
 
     def set_motors(self, m1_speed, m2_speed):
-        """
-        Set speed for both motors (-100 to 100).
-        Note: Motor 2 is inverted to account for mirrored physical mounting
-        in standard differential drive builds.
-        """
+        """Set speed for both motors (-100 to 100)."""
         self.m_speeds[0] = max(min(int(m1_speed), 100), -100)
         self.m_speeds[1] = -max(min(int(m2_speed), 100), -100) # Inverted for M2
         self._sync_state()
@@ -120,8 +119,11 @@ class ApitorRobot:
         m2 = self.m_speeds[1] & 0xFF
         l1, l2, l3, l4 = self.led_colors
 
-        # Packet: FF FE [Len] 01 02 [M1] [M2] 00 [L1] [L2] [L3] [L4] FD FC
         packet = bytearray([0xFF, 0xFE, 0x09, 0x01, 0x02, m1, m2, 0, l1, l2, l3, l4, 0xFD, 0xFC])
+        
+        if self.on_log:
+            self.on_log("TX", packet.hex())
+            
         asyncio.run_coroutine_threadsafe(
             self.client.write_gatt_char(self.WRITE_UUID, packet), 
             self.loop
