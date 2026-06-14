@@ -91,7 +91,7 @@ class ApitorGui:
         tk.Button(d_grid, text="Backward [S]", width=12, height=2, command=lambda: self.manual_master(-1)).grid(row=2, column=1, pady=2)
         
         spd_f = tk.Frame(inner); spd_f.pack(side="right", padx=30)
-        tk.Label(spd_f, text="Master Speed\nAdjust [ / ]", font=("Arial", 9, "bold")).pack()
+        tk.Label(spd_f, text="Master Speed\nAdjust [ / ] or R / F", font=("Arial", 9, "bold")).pack()
         self.speed_master = tk.Scale(spd_f, from_=100, to=0, orient="vertical", length=140); self.speed_master.set(70); self.speed_master.pack()
 
     def _setup_motor_panel(self):
@@ -101,15 +101,15 @@ class ApitorGui:
         m1_btns = tk.Frame(m1_f); m1_btns.pack(side="left", fill="y", padx=10)
         tk.Button(m1_btns, text="Forward [Q]", command=lambda: self._move_one(0, 1), width=12).pack(pady=2)
         tk.Button(m1_btns, text="STOP", command=lambda: self._move_one(0, 0), width=12, bg="#ffcdd2").pack(pady=2)
-        tk.Button(m1_btns, text="Backward [E]", command=lambda: self._move_one(0, -1), width=12).pack(pady=2)
+        tk.Button(m1_btns, text="Backward [Z]", command=lambda: self._move_one(0, -1), width=12).pack(pady=2)
         self.speed_m1 = tk.Scale(m1_f, from_=100, to=0, orient="vertical", length=100, label="Speed"); self.speed_m1.set(70); self.speed_m1.pack(side="right", padx=5)
         
         # Motor 2 (Right)
         m2_f = tk.LabelFrame(area, text="Motor 2 (Right Side)", padx=10, pady=5); m2_f.pack(side="left", fill="both", expand=True, padx=(5, 0))
         m2_btns = tk.Frame(m2_f); m2_btns.pack(side="left", fill="y", padx=10)
-        tk.Button(m2_btns, text="Forward [I]", command=lambda: self._move_one(1, 1), width=12).pack(pady=2)
+        tk.Button(m2_btns, text="Forward [E]", command=lambda: self._move_one(1, 1), width=12).pack(pady=2)
         tk.Button(m2_btns, text="STOP", command=lambda: self._move_one(1, 0), width=12, bg="#ffcdd2").pack(pady=2)
-        tk.Button(m2_btns, text="Backward [K]", command=lambda: self._move_one(1, -1), width=12).pack(pady=2)
+        tk.Button(m2_btns, text="Backward [C]", command=lambda: self._move_one(1, -1), width=12).pack(pady=2)
         self.speed_m2 = tk.Scale(m2_f, from_=100, to=0, orient="vertical", length=100, label="Speed"); self.speed_m2.set(70); self.speed_m2.pack(side="right", padx=5)
 
     def _setup_led_panel(self):
@@ -132,7 +132,7 @@ class ApitorGui:
     def _setup_footer(self):
         f = tk.Frame(self.root, bg="#eee", pady=5); f.pack(fill="x", side="bottom")
         self.log_btn = tk.Button(f, text="Show Traffic Log [L]", font=("Arial", 8), command=self.toggle_log); self.log_btn.pack(side="left", padx=20)
-        tk.Label(f, text="Keyboard Active: WASD / Arrows | QE / IK | 1-4 | [] | Space", font=("Arial", 8, "bold"), bg="#eee").pack(side="right", padx=20)
+        tk.Label(f, text="Keyboard Active: WASD | QZ / EC | 1-4 | [] or RF | Space", font=("Arial", 8, "bold"), bg="#eee").pack(side="right", padx=20)
 
     # --- Core Logic & Handlers ---
 
@@ -169,9 +169,9 @@ class ApitorGui:
                 self.led_vars[idx].set(new_idx)
                 self._on_led_radio_change(idx)
             
-            # [ / ]: Adjust Speed
-            if key == "bracketright": self.speed_master.set(min(self.speed_master.get() + 10, 100))
-            if key == "bracketleft": self.speed_master.set(max(self.speed_master.get() - 10, 0))
+            # [ / ] or R / F: Adjust Speed
+            if key in ["bracketright", "r"]: self.speed_master.set(min(self.speed_master.get() + 10, 100))
+            if key in ["bracketleft", "f"]: self.speed_master.set(max(self.speed_master.get() - 10, 0))
             
             # L: Toggle Log
             if key == "l": self.toggle_log()
@@ -202,14 +202,19 @@ class ApitorGui:
         elif left: m1, m2 = -ms, ms
         elif right: m1, m2 = ms, -ms
         
-        # 2. Individual Overrides (QE for M1, IK for M2)
+        # 2. Individual Overrides (QZ for M1, EC for M2)
         if 'q' in pk: m1 = m1_s
-        if 'e' in pk: m1 = -m1_s
-        if 'i' in pk: m2 = m2_s
-        if 'k' in pk: m2 = -m2_s
+        if 'z' in pk: m1 = -m1_s
+        if 'e' in pk: m2 = m2_s
+        if 'c' in pk: m2 = -m2_s
         
         if 'space' in pk: m1, m2 = 0, 0
         self.robot.set_motors(m1, m2)
+
+    def manual_master(self, dir1, dir2=None):
+        if dir2 is None: dir2 = dir1
+        s = self.speed_master.get()
+        self.robot.set_motors(dir1 * s, dir2 * s)
 
     def _move_one(self, motor_idx, direction):
         spd = self.speed_m1.get() if motor_idx == 0 else self.speed_m2.get()
