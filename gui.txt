@@ -1,5 +1,0 @@
-[scan][disconnect][connect]
----------------------------
-[sensor left][sensor right]
----------------------------
-[led 1][led 2][led 3][led 4]
