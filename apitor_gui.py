@@ -52,26 +52,33 @@ class ApitorGui:
         # 2. Battery Status Panel
         batt_frame = tk.LabelFrame(self.root, text="Battery Status", padx=10, pady=5)
         batt_frame.pack(fill="x", padx=15, pady=5)
-        self.batt_bar = ttk.Progressbar(batt_frame, orient="horizontal", mode="determinate")
+        # Using maximum 130 since raw values are around 110-120
+        self.batt_bar = ttk.Progressbar(batt_frame, orient="horizontal", mode="determinate", maximum=130)
         self.batt_bar.pack(side="left", fill="x", expand=True, padx=10)
-        self.batt_lbl = tk.Label(batt_frame, text="--%", font=("Courier", 10, "bold"), width=8)
+        self.batt_lbl = tk.Label(batt_frame, text="-- (raw)", font=("Courier", 10, "bold"), width=12)
         self.batt_lbl.pack(side="right")
 
         # 3. Infrared Sensors Area
         ir_outer = tk.Frame(self.root)
         ir_outer.pack(fill="x", padx=15, pady=2)
-        self.ir_bars = []
-        self.ir_rects = []
+        self.ir_bars = []; self.ir_rects = []; self.ir_vals = []
         
         for i, side in enumerate(["Left", "Right"]):
             f = tk.LabelFrame(ir_outer, text=f"Infrared Sensor ({side})", padx=10, pady=5)
             f.pack(side="left", fill="both", expand=True, padx=2)
-            canv = tk.Canvas(f, width=30, height=80, bg="#222", highlightthickness=0)
+            
+            canv = tk.Canvas(f, width=50, height=100, bg="#111", highlightthickness=1, highlightbackground="#444")
             canv.pack(pady=5)
-            # Create rect starting at bottom (y=80) with 0 height
-            rect = canv.create_rectangle(0, 80, 30, 80, fill="green")
-            self.ir_bars.append(canv)
-            self.ir_rects.append(rect)
+            # Full height background rect
+            canv.create_rectangle(0, 0, 50, 100, fill="#222", outline="")
+            # Responsive rect
+            rect = canv.create_rectangle(0, 100, 50, 100, fill="green", outline="")
+            self.ir_bars.append(canv); self.ir_rects.append(rect)
+            
+            # Value Label
+            v_lbl = tk.Label(f, text="Value: --", font=("Courier", 10, "bold"))
+            v_lbl.pack()
+            self.ir_vals.append(v_lbl)
 
         # 4. Master Drive Panel
         master_frame = tk.LabelFrame(self.root, text="Master Drive Control (WASD / Arrows)", padx=10, pady=10)
@@ -151,8 +158,7 @@ class ApitorGui:
             self.log_frame.pack_forget()
             self.log_btn.config(text="Show Traffic Log")
         self.log_visible = not self.log_visible
-        self.root.update_idletasks()
-        self._resize_to_fit()
+        self.root.update_idletasks(); self._resize_to_fit()
 
     def _bind_keys(self):
         self.root.bind("<KeyPress>", self.handle_keypress)
@@ -169,8 +175,7 @@ class ApitorGui:
     def handle_keypress(self, event):
         key = event.keysym.lower()
         if key in self.pressed_keys: return
-        self.pressed_keys.add(key)
-        self.update_movement()
+        self.pressed_keys.add(key); self.update_movement()
 
     def handle_keyrelease(self, event):
         key = event.keysym.lower()
@@ -193,8 +198,7 @@ class ApitorGui:
 
     def manual_master(self, dir1, dir2=None):
         if dir2 is None: dir2 = dir1
-        s = self.speed_master.get()
-        self.robot.set_motors(dir1 * s, dir2 * s)
+        s = self.speed_master.get(); self.robot.set_motors(dir1 * s, dir2 * s)
 
     def log_message(self, direction, msg):
         ts = datetime.now().strftime("%H:%M:%S")
@@ -202,20 +206,14 @@ class ApitorGui:
         self.root.after(0, lambda: self._write_to_log(line))
 
     def _write_to_log(self, line):
-        self.log_text.config(state="normal")
-        self.log_text.insert("end", line)
-        self.log_text.see("end")
-        self.log_text.config(state="disabled")
+        self.log_text.config(state="normal"); self.log_text.insert("end", line); self.log_text.see("end"); self.log_text.config(state="disabled")
 
     def connect(self):
-        self.status_lbl.config(text="Status: Connecting...", fg="orange")
-        self.robot.connect(self.on_connection_result)
+        self.status_lbl.config(text="Status: Connecting...", fg="orange"); self.robot.connect(self.on_connection_result)
 
     def disconnect(self):
-        self.robot.disconnect()
-        self.status_lbl.config(text="Status: Disconnected", fg="red")
-        self.disconn_btn.config(state="disabled")
-        self.conn_btn.config(state="normal")
+        self.robot.disconnect(); self.status_lbl.config(text="Status: Disconnected", fg="red")
+        self.disconn_btn.config(state="disabled"); self.conn_btn.config(state="normal")
 
     def on_connection_result(self, success):
         if success: self.root.after(0, self._conn_ok)
@@ -226,8 +224,7 @@ class ApitorGui:
         self.disconn_btn.config(state="normal"); self.conn_btn.config(state="disabled")
 
     def _conn_fail(self):
-        self.status_lbl.config(text="Status: Failed", fg="red")
-        messagebox.showerror("Error", "Connection failed. Ensure robot is on.")
+        self.status_lbl.config(text="Status: Failed", fg="red"); messagebox.showerror("Error", "Connect failed")
 
     def start_scan(self):
         self.status_lbl.config(text="Status: Scanning...", fg="blue")
@@ -238,8 +235,7 @@ class ApitorGui:
         if address: 
             self.root.after(0, lambda: self.status_lbl.config(text=f"Status: Found {address}", fg="green"))
             self.robot.address = address
-        else:
-            self.root.after(0, lambda: self.status_lbl.config(text="Status: No robot found", fg="red"))
+        else: self.root.after(0, lambda: self.status_lbl.config(text="Status: No robot found", fg="red"))
 
     def handle_sensor_data(self, type, value):
         if type == "battery": self.root.after(0, lambda: self._update_battery(value))
@@ -247,20 +243,24 @@ class ApitorGui:
         elif type == "ir2": self.root.after(0, lambda: self._update_ir_bar(1, value))
 
     def _update_battery(self, value):
+        # Handle raw battery values above 100
         self.batt_bar['value'] = value
-        self.batt_lbl.config(text=f"{value}%")
+        self.batt_lbl.config(text=f"{value} (raw)")
 
     def _update_ir_bar(self, idx, value):
-        canv = self.ir_bars[idx]
-        rect = self.ir_rects[idx]
-        # Sensor values are usually 0 (far) to 255 (touching).
-        # We need to invert or scale this depending on your specific robot feedback.
-        # Let's assume 255 = full bar (object touching)
-        scaled_val = max(min(int(value), 255), 0)
-        bar_height = (scaled_val / 255) * 80
-        y_top = 80 - bar_height
-        color = "red" if scaled_val > 200 else "yellow" if scaled_val > 100 else "green"
-        canv.coords(rect, 0, y_top, 30, 80)
+        canv = self.ir_bars[idx]; rect = self.ir_rects[idx]; v_lbl = self.ir_vals[idx]
+        v_lbl.config(text=f"Value: {value}")
+        
+        # SENSITIVITY FIX: If the user says they only see max 6, we use a much smaller scale.
+        # Assume 10 is the maximum for a "high sensitivity" view.
+        max_expected = 10
+        scaled_val = max(min(int(value), max_expected), 0)
+        
+        bar_height = (scaled_val / max_expected) * 100
+        y_top = 100 - bar_height
+        
+        color = "red" if scaled_val > 7 else "yellow" if scaled_val > 3 else "green"
+        canv.coords(rect, 0, y_top, 50, 100)
         canv.itemconfig(rect, fill=color)
 
 if __name__ == "__main__":
