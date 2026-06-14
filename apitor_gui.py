@@ -47,23 +47,30 @@ class ApitorGui:
         self.batt_lbl = tk.Label(batt_frame, text="--%", font=("Courier", 9, "bold"), width=6)
         self.batt_lbl.pack(side="right")
 
-        # 3. Infrared Sensors Panel
-        ir_frame = tk.LabelFrame(self.root, text="Infrared Sensors", padx=10, pady=5)
-        ir_frame.pack(fill="x", padx=10, pady=5)
-        ir_container = tk.Frame(ir_frame)
-        ir_container.pack(pady=5)
-        
+        # 3. Infrared Sensors Area (Horizontal Layout for the two panels)
+        ir_area = tk.Frame(self.root)
+        ir_area.pack(fill="x", padx=10, pady=2)
+
         self.ir_bars = []
         self.ir_rects = []
-        for i in range(1, 3):
-            f = tk.Frame(ir_container)
-            f.pack(side="left", padx=60)
-            canv = tk.Canvas(f, width=24, height=100, bg="#222", highlightthickness=0)
-            canv.pack()
-            rect = canv.create_rectangle(0, 100, 24, 100, fill="green")
-            tk.Label(f, text=f"Sensor {i}", font=("Arial", 8)).pack()
-            self.ir_bars.append(canv)
-            self.ir_rects.append(rect)
+        
+        # Infrared Sensor 1 Panel
+        ir1_frame = tk.LabelFrame(ir_area, text="Infrared Sensor 1", padx=10, pady=5)
+        ir1_frame.pack(side="left", fill="both", expand=True, padx=(0, 2))
+        canv1 = tk.Canvas(ir1_frame, width=24, height=80, bg="#222", highlightthickness=0)
+        canv1.pack()
+        rect1 = canv1.create_rectangle(0, 80, 24, 80, fill="green")
+        self.ir_bars.append(canv1)
+        self.ir_rects.append(rect1)
+
+        # Infrared Sensor 2 Panel
+        ir2_frame = tk.LabelFrame(ir_area, text="Infrared Sensor 2", padx=10, pady=5)
+        ir2_frame.pack(side="left", fill="both", expand=True, padx=(2, 0))
+        canv2 = tk.Canvas(ir2_frame, width=24, height=80, bg="#222", highlightthickness=0)
+        canv2.pack()
+        rect2 = canv2.create_rectangle(0, 80, 24, 80, fill="green")
+        self.ir_bars.append(canv2)
+        self.ir_rects.append(rect2)
 
         # 4. Master Drive Panel
         master_frame = tk.LabelFrame(self.root, text="Master Drive (WASD / Arrows)", padx=10, pady=10)
@@ -87,7 +94,7 @@ class ApitorGui:
         self.speed_master.set(70)
         self.speed_master.pack()
 
-        # 5. Individual Motor Control Area
+        # 5. Individual Motor Control Area (Horizontal Layout)
         motor_area = tk.Frame(self.root)
         motor_area.pack(fill="x", padx=10, pady=5)
 
@@ -124,7 +131,6 @@ class ApitorGui:
             lf.pack(fill="x", pady=5)
             
             tk.Label(lf, text=f"LED {i+1}:", width=8, anchor="w").pack(side="left")
-            
             pre = tk.Label(lf, width=2, height=1, bg="#333", relief="sunken")
             pre.pack(side="left", padx=5)
             self.led_previews.append(pre)
@@ -264,9 +270,9 @@ class ApitorGui:
         canv = self.ir_bars[idx]
         rect = self.ir_rects[idx]
         height = max(min(int(value), 100), 0)
-        y_pos = 100 - height
+        y_pos = 80 - height
         color = "red" if height < 20 else "yellow" if height < 50 else "green"
-        canv.coords(rect, 0, y_pos, 24, 100)
+        canv.coords(rect, 0, y_pos, 24, 80)
         canv.itemconfig(rect, fill=color)
 
 if __name__ == "__main__":
