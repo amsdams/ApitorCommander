@@ -9,8 +9,7 @@ class ApitorGui:
     def __init__(self, root, robot_address):
         self.root = root
         self.root.title("Apitor Master Hardware Controller")
-        self.root.geometry("700x1100")
-
+        
         # Backend Robot instance
         self.robot = ApitorRobot(robot_address)
         self.robot.on_sensor_data = self.handle_sensor_data
@@ -24,136 +23,141 @@ class ApitorGui:
 
         self._setup_ui()
         self._bind_keys()
+        
+        # --- DYNAMIC SIZING ---
+        # Forces Tkinter to calculate the space needed for all widgets
+        self.root.update_idletasks()
+        self._resize_to_fit()
+
+    def _resize_to_fit(self):
+        # Ask Tkinter for the "Requested" width and height
+        req_w = self.root.winfo_reqwidth()
+        req_h = self.root.winfo_reqheight()
+        
+        # Add a comfortable padding buffer (40px)
+        self.root.geometry(f"{req_w + 40}x{req_h + 40}")
 
     def _setup_ui(self):
         # 1. Connection Panel
-        conn_frame = tk.LabelFrame(self.root, text="Connection", padx=10, pady=5)
-        conn_frame.pack(fill="x", padx=10, pady=5)
+        conn_frame = tk.LabelFrame(self.root, text="System Connection", padx=10, pady=5)
+        conn_frame.pack(fill="x", padx=15, pady=5)
         
-        self.status_lbl = tk.Label(conn_frame, text="Disconnected", font=("Arial", 10, "bold"), fg="red")
+        self.status_lbl = tk.Label(conn_frame, text="Status: Disconnected", font=("Arial", 10, "bold"), fg="red")
         self.status_lbl.pack(side="left")
         
-        tk.Button(conn_frame, text="Scan (F1)", command=self.start_scan).pack(side="right", padx=2)
-        self.disconn_btn = tk.Button(conn_frame, text="Disconnect (F3)", command=self.disconnect, state="disabled")
-        self.disconn_btn.pack(side="right", padx=2)
-        self.conn_btn = tk.Button(conn_frame, text="Connect (F2)", command=self.connect, bg="#4CAF50", fg="white")
-        self.conn_btn.pack(side="right", padx=2)
+        tk.Button(conn_frame, text="Scan (F1)", command=self.start_scan, width=12).pack(side="right", padx=5)
+        self.disconn_btn = tk.Button(conn_frame, text="Disconnect (F3)", command=self.disconnect, state="disabled", width=12)
+        self.disconn_btn.pack(side="right", padx=5)
+        self.conn_btn = tk.Button(conn_frame, text="Connect (F2)", command=self.connect, bg="#4CAF50", fg="white", width=12)
+        self.conn_btn.pack(side="right", padx=5)
 
         # 2. Battery Status Panel
         batt_frame = tk.LabelFrame(self.root, text="Battery Status", padx=10, pady=5)
-        batt_frame.pack(fill="x", padx=10, pady=5)
+        batt_frame.pack(fill="x", padx=15, pady=5)
         self.batt_bar = ttk.Progressbar(batt_frame, orient="horizontal", mode="determinate")
-        self.batt_bar.pack(side="left", fill="x", expand=True, padx=5)
-        self.batt_lbl = tk.Label(batt_frame, text="--%", font=("Courier", 9, "bold"), width=6)
+        self.batt_bar.pack(side="left", fill="x", expand=True, padx=10)
+        self.batt_lbl = tk.Label(batt_frame, text="--%", font=("Courier", 10, "bold"), width=8)
         self.batt_lbl.pack(side="right")
 
-        # 3. Infrared Sensors Area (Horizontal Layout for the two panels)
-        ir_area = tk.Frame(self.root)
-        ir_area.pack(fill="x", padx=10, pady=2)
-
+        # 3. Infrared Sensors Panel
+        ir_frame = tk.LabelFrame(self.root, text="Infrared Sensors", padx=10, pady=5)
+        ir_frame.pack(fill="x", padx=15, pady=5)
+        ir_container = tk.Frame(ir_frame)
+        ir_container.pack(pady=5)
+        
         self.ir_bars = []
         self.ir_rects = []
-        
-        # Infrared Sensor 1 Panel
-        ir1_frame = tk.LabelFrame(ir_area, text="Infrared Sensor 1", padx=10, pady=5)
-        ir1_frame.pack(side="left", fill="both", expand=True, padx=(0, 2))
-        canv1 = tk.Canvas(ir1_frame, width=24, height=80, bg="#222", highlightthickness=0)
-        canv1.pack()
-        rect1 = canv1.create_rectangle(0, 80, 24, 80, fill="green")
-        self.ir_bars.append(canv1)
-        self.ir_rects.append(rect1)
-
-        # Infrared Sensor 2 Panel
-        ir2_frame = tk.LabelFrame(ir_area, text="Infrared Sensor 2", padx=10, pady=5)
-        ir2_frame.pack(side="left", fill="both", expand=True, padx=(2, 0))
-        canv2 = tk.Canvas(ir2_frame, width=24, height=80, bg="#222", highlightthickness=0)
-        canv2.pack()
-        rect2 = canv2.create_rectangle(0, 80, 24, 80, fill="green")
-        self.ir_bars.append(canv2)
-        self.ir_rects.append(rect2)
+        for i in range(1, 3):
+            f = tk.Frame(ir_container)
+            f.pack(side="left", padx=80)
+            canv = tk.Canvas(f, width=30, height=100, bg="#222", highlightthickness=0)
+            canv.pack()
+            rect = canv.create_rectangle(0, 100, 30, 100, fill="green")
+            tk.Label(f, text=f"Sensor {i}", font=("Arial", 9, "bold")).pack()
+            self.ir_bars.append(canv)
+            self.ir_rects.append(rect)
 
         # 4. Master Drive Panel
-        master_frame = tk.LabelFrame(self.root, text="Master Drive (WASD / Arrows)", padx=10, pady=10)
-        master_frame.pack(fill="x", padx=10, pady=5)
+        master_frame = tk.LabelFrame(self.root, text="Master Drive Control (WASD / Arrows)", padx=10, pady=10)
+        master_frame.pack(fill="x", padx=15, pady=5)
         
         master_inner = tk.Frame(master_frame)
         master_inner.pack()
 
         d_grid = tk.Frame(master_inner)
-        d_grid.pack(side="left", padx=20)
-        tk.Button(d_grid, text="Forward", width=8, command=lambda: self.manual_master(1)).grid(row=0, column=1)
-        tk.Button(d_grid, text="Left", width=8, command=lambda: self.manual_master(-1, 1)).grid(row=1, column=0)
-        tk.Button(d_grid, text="Stop", width=8, bg="#f44336", fg="white", command=self.robot.stop).grid(row=1, column=1)
-        tk.Button(d_grid, text="Right", width=8, command=lambda: self.manual_master(1, -1)).grid(row=1, column=2)
-        tk.Button(d_grid, text="Backward", width=8, command=lambda: self.manual_master(-1)).grid(row=2, column=1)
+        d_grid.pack(side="left", padx=40)
+        tk.Button(d_grid, text="Forward", width=12, height=2, command=lambda: self.manual_master(1)).grid(row=0, column=1, pady=2)
+        tk.Button(d_grid, text="Turn Left", width=12, height=2, command=lambda: self.manual_master(-1, 1)).grid(row=1, column=0, padx=2)
+        tk.Button(d_grid, text="STOP", width=12, height=2, bg="#f44336", fg="white", font=("Arial", 9, "bold"), command=self.robot.stop).grid(row=1, column=1)
+        tk.Button(d_grid, text="Turn Right", width=12, height=2, command=lambda: self.manual_master(1, -1)).grid(row=1, column=2, padx=2)
+        tk.Button(d_grid, text="Backward", width=12, height=2, command=lambda: self.manual_master(-1)).grid(row=2, column=1, pady=2)
 
         spd_master_f = tk.Frame(master_inner)
-        spd_master_f.pack(side="right", padx=20)
-        tk.Label(spd_master_f, text="Master\nSpeed", font=("Arial", 8)).pack()
-        self.speed_master = tk.Scale(spd_master_f, from_=100, to=0, orient="vertical", length=100)
+        spd_master_f.pack(side="right", padx=40)
+        tk.Label(spd_master_f, text="Master Speed", font=("Arial", 9, "bold")).pack()
+        self.speed_master = tk.Scale(spd_master_f, from_=100, to=0, orient="vertical", length=160)
         self.speed_master.set(70)
         self.speed_master.pack()
 
-        # 5. Individual Motor Control Area (Horizontal Layout)
+        # 5. Individual Motor Control Area
         motor_area = tk.Frame(self.root)
-        motor_area.pack(fill="x", padx=10, pady=5)
+        motor_area.pack(fill="x", padx=15, pady=5)
 
-        # Motor 1 Panel
+        # Motor 1
         m1_f = tk.LabelFrame(motor_area, text="Motor 1 (Left Side)", padx=10, pady=5)
-        m1_f.pack(side="left", fill="both", expand=True, padx=(0, 2))
+        m1_f.pack(side="left", fill="both", expand=True, padx=(0, 5))
         m1_btns = tk.Frame(m1_f)
-        m1_btns.pack(side="left", fill="y")
-        tk.Button(m1_btns, text="Forward", command=lambda: self.robot.set_motors(self.speed_m1.get(), self.robot.m_speeds[1]), width=10).pack(pady=2)
-        tk.Button(m1_btns, text="Backward", command=lambda: self.robot.set_motors(-self.speed_m1.get(), self.robot.m_speeds[1]), width=10).pack(pady=2)
-        self.speed_m1 = tk.Scale(m1_f, from_=100, to=0, orient="vertical", length=80, label="Speed")
+        m1_btns.pack(side="left", fill="y", padx=20)
+        tk.Button(m1_btns, text="Forward", command=lambda: self.robot.set_motors(self.speed_m1.get(), self.robot.m_speeds[1]), width=12, height=2).pack(pady=5)
+        tk.Button(m1_btns, text="Backward", command=lambda: self.robot.set_motors(-self.speed_m1.get(), self.robot.m_speeds[1]), width=12, height=2).pack(pady=5)
+        self.speed_m1 = tk.Scale(m1_f, from_=100, to=0, orient="vertical", length=120, label="Speed")
         self.speed_m1.set(70)
-        self.speed_m1.pack(side="right")
+        self.speed_m1.pack(side="right", padx=10)
 
-        # Motor 2 Panel
+        # Motor 2
         m2_f = tk.LabelFrame(motor_area, text="Motor 2 (Right Side)", padx=10, pady=5)
-        m2_f.pack(side="left", fill="both", expand=True, padx=(2, 0))
+        m2_f.pack(side="left", fill="both", expand=True, padx=(5, 0))
         m2_btns = tk.Frame(m2_f)
-        m2_btns.pack(side="left", fill="y")
-        tk.Button(m2_btns, text="Forward", command=lambda: self.robot.set_motors(self.robot.m_speeds[0], self.speed_m2.get()), width=10).pack(pady=2)
-        tk.Button(m2_btns, text="Backward", command=lambda: self.robot.set_motors(self.robot.m_speeds[0], -self.speed_m2.get()), width=10).pack(pady=2)
-        self.speed_m2 = tk.Scale(m2_f, from_=100, to=0, orient="vertical", length=80, label="Speed")
+        m2_btns.pack(side="left", fill="y", padx=20)
+        tk.Button(m2_btns, text="Forward", command=lambda: self.robot.set_motors(self.robot.m_speeds[0], self.speed_m2.get()), width=12, height=2).pack(pady=5)
+        tk.Button(m2_btns, text="Backward", command=lambda: self.robot.set_motors(self.robot.m_speeds[0], -self.speed_m2.get()), width=12, height=2).pack(pady=5)
+        self.speed_m2 = tk.Scale(m2_f, from_=100, to=0, orient="vertical", length=120, label="Speed")
         self.speed_m2.set(70)
-        self.speed_m2.pack(side="right")
+        self.speed_m2.pack(side="right", padx=10)
 
         # 6. LED Control Area
-        led_master = tk.LabelFrame(self.root, text="Light Emitting Diodes (LED) Control", padx=10, pady=5)
-        led_master.pack(fill="x", padx=10, pady=5)
+        led_master = tk.LabelFrame(self.root, text="Light Emitting Diodes (LED) Control", padx=10, pady=10)
+        led_master.pack(fill="x", padx=15, pady=5)
         
         self.led_vars = []
         self.led_previews = []
         for i in range(4):
             lf = tk.Frame(led_master)
-            lf.pack(fill="x", pady=5)
+            lf.pack(fill="x", pady=6)
             
-            tk.Label(lf, text=f"LED {i+1}:", width=8, anchor="w").pack(side="left")
-            pre = tk.Label(lf, width=2, height=1, bg="#333", relief="sunken")
-            pre.pack(side="left", padx=5)
+            tk.Label(lf, text=f"LED {i+1}:", width=10, anchor="w", font=("Arial", 9, "bold")).pack(side="left")
+            pre = tk.Label(lf, width=4, height=1, bg="#333", relief="sunken")
+            pre.pack(side="left", padx=15)
             self.led_previews.append(pre)
             
             v = tk.IntVar(value=0)
             self.led_vars.append(v)
             for c_idx, c_name in enumerate(self.colors):
-                rb = tk.Radiobutton(lf, text=c_name, variable=v, value=c_idx, 
+                tk.Radiobutton(lf, text=c_name, variable=v, value=c_idx, 
                                   command=lambda idx=i: self._on_led_radio_change(idx),
-                                  font=("Arial", 8))
-                rb.pack(side="left", padx=2)
+                                  font=("Arial", 9)).pack(side="left", padx=6)
 
-        # 7. Traffic Log (Hidden by default)
+        # 7. Traffic Log
         self.log_frame = tk.Frame(self.root)
-        self.log_text = tk.Text(self.log_frame, height=8, width=50, font=("Courier", 8), state="disabled", bg="#1e1e1e", fg="#d4d4d4")
-        self.log_text.pack(fill="both", expand=True, padx=10, pady=5)
+        self.log_text = tk.Text(self.log_frame, height=12, font=("Courier", 8), state="disabled", bg="#1e1e1e", fg="#d4d4d4")
+        self.log_text.pack(fill="both", expand=True, padx=15, pady=5)
 
         # 8. Footer
-        footer = tk.Frame(self.root, bg="#eee", pady=2)
+        footer = tk.Frame(self.root, bg="#eee", pady=5)
         footer.pack(fill="x", side="bottom")
         self.log_btn = tk.Button(footer, text="Show Traffic Log", font=("Arial", 8), command=self.toggle_log)
-        self.log_btn.pack(side="left", padx=10)
-        tk.Label(footer, text="WASD:Drive | Space:Stop | F1/F2/F3:System", font=("Arial", 8), bg="#eee").pack(side="right", padx=10)
+        self.log_btn.pack(side="left", padx=20)
+        tk.Label(footer, text="WASD: Drive | Space: STOP ALL | F1-F3: System", font=("Arial", 8, "bold"), bg="#eee").pack(side="right", padx=20)
 
     def toggle_log(self):
         if not self.log_visible:
@@ -162,7 +166,12 @@ class ApitorGui:
         else:
             self.log_frame.pack_forget()
             self.log_btn.config(text="Show Traffic Log")
+        
         self.log_visible = not self.log_visible
+        
+        # Re-calculate size to fit new content (Log or No Log)
+        self.root.update_idletasks()
+        self._resize_to_fit()
 
     def _bind_keys(self):
         self.root.bind("<KeyPress>", self.handle_keypress)
@@ -184,8 +193,7 @@ class ApitorGui:
 
     def handle_keyrelease(self, event):
         key = event.keysym.lower()
-        if key in self.pressed_keys:
-            self.pressed_keys.remove(key)
+        if key in self.pressed_keys: self.pressed_keys.remove(key)
         self.update_movement()
 
     def update_movement(self):
@@ -220,12 +228,12 @@ class ApitorGui:
         self.log_text.config(state="disabled")
 
     def connect(self):
-        self.status_lbl.config(text="Connecting...", fg="orange")
+        self.status_lbl.config(text="Status: Connecting...", fg="orange")
         self.robot.connect(self.on_connection_result)
 
     def disconnect(self):
         self.robot.disconnect()
-        self.status_lbl.config(text="Disconnected", fg="red")
+        self.status_lbl.config(text="Status: Disconnected", fg="red")
         self.disconn_btn.config(state="disabled")
         self.conn_btn.config(state="normal")
 
@@ -234,33 +242,30 @@ class ApitorGui:
         else: self.root.after(0, self._conn_fail)
 
     def _conn_ok(self):
-        self.status_lbl.config(text="Connected", fg="green")
+        self.status_lbl.config(text="Status: Connected", fg="green")
         self.disconn_btn.config(state="normal")
         self.conn_btn.config(state="disabled")
 
     def _conn_fail(self):
-        self.status_lbl.config(text="Failed", fg="red")
+        self.status_lbl.config(text="Status: Failed", fg="red")
         messagebox.showerror("Error", "Connect failed")
 
     def start_scan(self):
-        self.status_lbl.config(text="Scanning...", fg="blue")
+        self.status_lbl.config(text="Status: Scanning...", fg="blue")
         future = asyncio.run_coroutine_threadsafe(self.robot.scan(), self.robot.loop)
         threading.Thread(target=lambda: self._scan_done(future.result()), daemon=True).start()
 
     def _scan_done(self, address):
         if address: 
-            self.root.after(0, lambda: self.status_lbl.config(text=f"Found: {address}", fg="green"))
+            self.root.after(0, lambda: self.status_lbl.config(text=f"Status: Found {address}", fg="green"))
             self.robot.address = address
         else:
-            self.root.after(0, lambda: self.status_lbl.config(text="No robot", fg="red"))
+            self.root.after(0, lambda: self.status_lbl.config(text="Status: No robot found", fg="red"))
 
     def handle_sensor_data(self, type, value):
-        if type == "battery": 
-            self.root.after(0, lambda: self._update_battery(value))
-        elif type == "ir1":
-            self.root.after(0, lambda: self._update_ir_bar(0, value))
-        elif type == "ir2":
-            self.root.after(0, lambda: self._update_ir_bar(1, value))
+        if type == "battery": self.root.after(0, lambda: self._update_battery(value))
+        elif type == "ir1": self.root.after(0, lambda: self._update_ir_bar(0, value))
+        elif type == "ir2": self.root.after(0, lambda: self._update_ir_bar(1, value))
 
     def _update_battery(self, value):
         self.batt_bar['value'] = value
@@ -269,10 +274,11 @@ class ApitorGui:
     def _update_ir_bar(self, idx, value):
         canv = self.ir_bars[idx]
         rect = self.ir_rects[idx]
-        height = max(min(int(value), 100), 0)
-        y_pos = 80 - height
-        color = "red" if height < 20 else "yellow" if height < 50 else "green"
-        canv.coords(rect, 0, y_pos, 24, 80)
+        scaled_val = max(min(int(value), 255), 0)
+        height = (scaled_val / 255) * 100
+        y_pos = 100 - height
+        color = "red" if scaled_val < 50 else "yellow" if scaled_val < 150 else "green"
+        canv.coords(rect, 0, y_pos, 30, 100)
         canv.itemconfig(rect, fill=color)
 
 if __name__ == "__main__":
