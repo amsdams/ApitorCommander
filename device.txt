@@ -1,0 +1,14 @@
+Device F9:F6:9F:FD:09:4A (random)
+        Name: Nordic_TUDAO
+        Alias: Nordic_TUDAO
+        Paired: no
+        Bonded: no
+        Trusted: no
+        Blocked: no
+        Connected: no
+        LegacyPairing: no
+        CablePairing: no
+        UUID: Nordic UART Service       (6e400001-b5a3-f393-e0a9-e50e24dcca9e)
+        RSSI: 0xffffffcb (-53)
+        AdvertisingFlags:
+  05                                               .
