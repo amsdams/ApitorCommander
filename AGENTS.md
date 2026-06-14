@@ -12,9 +12,9 @@ This is a Python project for controlling Apitor robots via Bluetooth Low Energy 
 - **Entry Point:** `python apitor_gui.py`
 
 ## Architecture & Logic
-- **`apitor_robot.py`**: Hardware abstraction layer. Handles async BLE loops in a separate thread.
+- **`apitor_robot.py`**: Hardware abstraction layer. Handles async BLE loops in a separate thread. Maintains internal state for motors and 4 LEDs. 
+  - **Inversion Logic:** Motor 2 speed is inverted in `set_motors` to compensate for mirrored physical mounting in standard builds.
 - **`apitor_gui.py`**: UI layer. Communicates with `ApitorRobot` via method calls.
-- **Thread Safety:** All UI updates from BLE callbacks must use `root.after(0, ...)` to avoid Tkinter thread collisions.
 
 ## BLE Protocol Reference
 - **Service UUID:** `6e400001-b5a3-f393-e0a9-e50e24dcca9e`
@@ -22,12 +22,18 @@ This is a Python project for controlling Apitor robots via Bluetooth Low Energy 
 - **Read/Notify Characteristic:** `6e400003-b5a3-f393-e0a9-e50e24dcca9e`
 - **Auth Sequence:** `55aa112064796f7a574f50663035326757565034` (Hex)
 - **Init Handshake:** `fffe0104fdfc` (Hex)
-- **Motor Command (FFFE Protocol):**
-  - Packet: `FF FE 09 01 02 [M1] [M2] 00 00 00 00 00 FD FC`
-  - `M1`/`M2` are signed bytes (-100 to 100).
+- **State Packet (FFFE Protocol):**
+  - Packet: `FF FE 09 01 02 [M1] [M2] 00 [L1] [L2] [L3] [L4] FD FC`
+  - `M1`/`M2`: Signed bytes (-100 to 100).
+  - `L1`-`L4`: Color indices (0-7).
 - **Sensor Notification (FFFE):**
   - Prefix: `FF FE 06 01 01`
-  - Distance value: index 5.
+  - Battery: index 5.
+  - IR Sensor 1: index 7.
+  - IR Sensor 2: index 8.
+
+## LED Color Mapping
+- 0: Off, 1: Red, 2: Orange, 3: Yellow, 4: Green, 5: Cyan, 6: Blue, 7: Violet.
 
 ## Code Conventions
 - **Asynchronous Code:** BLE operations must be run in the robot's dedicated event loop using `asyncio.run_coroutine_threadsafe`.
