@@ -26,6 +26,11 @@ class ApitorGui:
         self.colors = ["Off", "Red", "Orange", "Yellow", "Green", "Cyan", "Blue", "Violet"]
         self.hex_colors = ["#333", "#ff0000", "#ffa500", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#ee82ee"]
         self.led_labels = ["Front Left", "Front Right", "Back Left", "Back Right"]
+        
+        # UI Button References for highlighting
+        self.btn_map = {} # Maps keysym or logic-key to tk.Button
+        # Capture default background to avoid platform-specific color name errors
+        self.default_btn_bg = root.cget("bg")
 
         self._setup_ui()
         self._bind_keys()
@@ -80,15 +85,20 @@ class ApitorGui:
             self.ir_vals.append(v_lbl)
 
     def _setup_drive_panel(self):
-        f = tk.LabelFrame(self.root, text="Master Drive Control [WASD / Arrows]", padx=10, pady=10)
+        f = tk.LabelFrame(self.root, text="Master Drive Control [Arrows]", padx=10, pady=10)
         f.pack(fill="x", padx=15, pady=5)
         inner = tk.Frame(f); inner.pack()
         d_grid = tk.Frame(inner); d_grid.pack(side="left", padx=30)
-        tk.Button(d_grid, text="Forward [W]", width=12, height=2, command=lambda: self.manual_master(1)).grid(row=0, column=1, pady=2)
-        tk.Button(d_grid, text="Turn Left [A]", width=12, height=2, command=lambda: self.manual_master(-1, 1)).grid(row=1, column=0, padx=2)
-        tk.Button(d_grid, text="STOP [Space]", width=12, height=2, bg="#f44336", fg="white", font=("Arial", 9, "bold"), command=self.robot.stop).grid(row=1, column=1)
-        tk.Button(d_grid, text="Turn Right [D]", width=12, height=2, command=lambda: self.manual_master(1, -1)).grid(row=1, column=2, padx=2)
-        tk.Button(d_grid, text="Backward [S]", width=12, height=2, command=lambda: self.manual_master(-1)).grid(row=2, column=1, pady=2)
+        self.btn_map['up'] = tk.Button(d_grid, text="Both Fwd [▲]", width=12, height=2, command=lambda: self.manual_master(1))
+        self.btn_map['up'].grid(row=0, column=1, pady=2)
+        self.btn_map['left'] = tk.Button(d_grid, text="Spin Left [◀]", width=12, height=2, command=lambda: self.manual_master(-1, 1))
+        self.btn_map['left'].grid(row=1, column=0, padx=2)
+        self.btn_map['space'] = tk.Button(d_grid, text="STOP [Space]", width=12, height=2, bg="#f44336", fg="white", font=("Arial", 9, "bold"), command=self.robot.stop)
+        self.btn_map['space'].grid(row=1, column=1)
+        self.btn_map['right'] = tk.Button(d_grid, text="Spin Right [▶]", width=12, height=2, command=lambda: self.manual_master(1, -1))
+        self.btn_map['right'].grid(row=1, column=2, padx=2)
+        self.btn_map['down'] = tk.Button(d_grid, text="Both Back [▼]", width=12, height=2, command=lambda: self.manual_master(-1))
+        self.btn_map['down'].grid(row=2, column=1, pady=2)
         
         spd_f = tk.Frame(inner); spd_f.pack(side="right", padx=30)
         tk.Label(spd_f, text="Master Speed\nAdjust [ / ] or R / F", font=("Arial", 9, "bold")).pack()
@@ -96,21 +106,27 @@ class ApitorGui:
 
     def _setup_motor_panel(self):
         area = tk.Frame(self.root); area.pack(fill="x", padx=15, pady=5)
-        # Motor 1 (Left)
-        m1_f = tk.LabelFrame(area, text="Motor 1 (Left Side)", padx=10, pady=5); m1_f.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        # Motor 1 (Left Track)
+        m1_f = tk.LabelFrame(area, text="Left Track Control", padx=10, pady=5); m1_f.pack(side="left", fill="both", expand=True, padx=(0, 5))
         m1_btns = tk.Frame(m1_f); m1_btns.pack(side="left", fill="y", padx=10)
-        tk.Button(m1_btns, text="Forward [Q]", command=lambda: self._move_one(0, 1), width=12).pack(pady=2)
-        tk.Button(m1_btns, text="STOP", command=lambda: self._move_one(0, 0), width=12, bg="#ffcdd2").pack(pady=2)
-        tk.Button(m1_btns, text="Backward [Z]", command=lambda: self._move_one(0, -1), width=12).pack(pady=2)
-        self.speed_m1 = tk.Scale(m1_f, from_=100, to=0, orient="vertical", length=100, label="Speed"); self.speed_m1.set(70); self.speed_m1.pack(side="right", padx=5)
+        self.btn_map['q'] = tk.Button(m1_btns, text="Forward [Q]", command=lambda: self._move_one(0, 1), width=12)
+        self.btn_map['q'].pack(pady=2)
+        self.btn_map['z'] = tk.Button(m1_btns, text="STOP [Z]", command=lambda: self._move_one(0, 0), width=12, bg="#ffcdd2")
+        self.btn_map['z'].pack(pady=2)
+        self.btn_map['a'] = tk.Button(m1_btns, text="Backward [A]", command=lambda: self._move_one(0, -1), width=12)
+        self.btn_map['a'].pack(pady=2)
+        self.speed_m1 = tk.Scale(m1_f, from_=100, to=0, orient="vertical", length=100, label="Speed [O/K]"); self.speed_m1.set(70); self.speed_m1.pack(side="right", padx=5)
         
-        # Motor 2 (Right)
-        m2_f = tk.LabelFrame(area, text="Motor 2 (Right Side)", padx=10, pady=5); m2_f.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        # Motor 2 (Right Track)
+        m2_f = tk.LabelFrame(area, text="Right Track Control", padx=10, pady=5); m2_f.pack(side="left", fill="both", expand=True, padx=(5, 0))
         m2_btns = tk.Frame(m2_f); m2_btns.pack(side="left", fill="y", padx=10)
-        tk.Button(m2_btns, text="Forward [E]", command=lambda: self._move_one(1, 1), width=12).pack(pady=2)
-        tk.Button(m2_btns, text="STOP", command=lambda: self._move_one(1, 0), width=12, bg="#ffcdd2").pack(pady=2)
-        tk.Button(m2_btns, text="Backward [C]", command=lambda: self._move_one(1, -1), width=12).pack(pady=2)
-        self.speed_m2 = tk.Scale(m2_f, from_=100, to=0, orient="vertical", length=100, label="Speed"); self.speed_m2.set(70); self.speed_m2.pack(side="right", padx=5)
+        self.btn_map['w'] = tk.Button(m2_btns, text="Forward [W]", command=lambda: self._move_one(1, 1), width=12)
+        self.btn_map['w'].pack(pady=2)
+        self.btn_map['x'] = tk.Button(m2_btns, text="STOP [X]", command=lambda: self._move_one(1, 0), width=12, bg="#ffcdd2")
+        self.btn_map['x'].pack(pady=2)
+        self.btn_map['s'] = tk.Button(m2_btns, text="Backward [S]", command=lambda: self._move_one(1, -1), width=12)
+        self.btn_map['s'].pack(pady=2)
+        self.speed_m2 = tk.Scale(m2_f, from_=100, to=0, orient="vertical", length=100, label="Speed [P/L]"); self.speed_m2.set(70); self.speed_m2.pack(side="right", padx=5)
 
     def _setup_led_panel(self):
         f = tk.LabelFrame(self.root, text="Light Emitting Diode (LED) Control", padx=10, pady=5); f.pack(fill="x", padx=15, pady=5)
@@ -131,8 +147,8 @@ class ApitorGui:
 
     def _setup_footer(self):
         f = tk.Frame(self.root, bg="#eee", pady=5); f.pack(fill="x", side="bottom")
-        self.log_btn = tk.Button(f, text="Show Traffic Log [L]", font=("Arial", 8), command=self.toggle_log); self.log_btn.pack(side="left", padx=20)
-        tk.Label(f, text="Keyboard Active: WASD | QZ / EC | 1-4 | [] or RF | Space", font=("Arial", 8, "bold"), bg="#eee").pack(side="right", padx=20)
+        self.log_btn = tk.Button(f, text="Show Traffic Log [Ctrl+L]", font=("Arial", 8), command=self.toggle_log); self.log_btn.pack(side="left", padx=20)
+        tk.Label(f, text="Active: Arrows (Master) | QAZ / WSX (Tracks) | OK/PL (Track Spd) | 1-4 | RF | Space", font=("Arial", 8, "bold"), bg="#eee").pack(side="right", padx=20)
 
     # --- Core Logic & Handlers ---
 
@@ -143,10 +159,10 @@ class ApitorGui:
     def toggle_log(self):
         if not self.log_visible:
             self.log_frame.pack(fill="both", expand=True)
-            self.log_btn.config(text="Hide Traffic Log [L]")
+            self.log_btn.config(text="Hide Traffic Log [Ctrl+L]")
         else:
             self.log_frame.pack_forget()
-            self.log_btn.config(text="Show Traffic Log [L]")
+            self.log_btn.config(text="Show Traffic Log [Ctrl+L]")
         self.log_visible = not self.log_visible
         self.root.update_idletasks(); self._resize_to_fit()
 
@@ -162,6 +178,10 @@ class ApitorGui:
         if key not in self.pressed_keys:
             self.pressed_keys.add(key)
             
+            # Visual Feedback: Highlight Button
+            if key in self.btn_map:
+                self.btn_map[key].config(relief="sunken", bg="#90caf9")
+            
             # 1-4: Cycle Colors
             if key in "1234":
                 idx = int(key) - 1
@@ -173,8 +193,17 @@ class ApitorGui:
             if key in ["bracketright", "r"]: self.speed_master.set(min(self.speed_master.get() + 10, 100))
             if key in ["bracketleft", "f"]: self.speed_master.set(max(self.speed_master.get() - 10, 0))
             
-            # L: Toggle Log
-            if key == "l": self.toggle_log()
+            # O / K: Adjust Left Track Speed
+            if key == "o": self.speed_m1.set(min(self.speed_m1.get() + 10, 100))
+            if key == "k": self.speed_m1.set(max(self.speed_m1.get() - 10, 0))
+
+            # P / L: Adjust Right Track Speed
+            if key == "p": self.speed_m2.set(min(self.speed_m2.get() + 10, 100))
+            if key == "l": self.speed_m2.set(max(self.speed_m2.get() - 10, 0))
+
+            # Ctrl+L: Toggle Log
+            if key == "l" and (event.state & 0x4):
+                self.toggle_log()
             
             self._update_movement()
 
@@ -182,6 +211,17 @@ class ApitorGui:
         key = event.keysym.lower()
         if key in self.pressed_keys:
             self.pressed_keys.remove(key)
+            
+            # Visual Feedback: Reset Button
+            if key in self.btn_map:
+                # Restore original style
+                if key == "space": 
+                    self.btn_map[key].config(relief="raised", bg="#f44336")
+                elif key in ["z", "x"]:
+                    self.btn_map[key].config(relief="raised", bg="#ffcdd2")
+                else:
+                    self.btn_map[key].config(relief="raised", bg=self.default_btn_bg)
+                
         self._update_movement()
 
     def _update_movement(self):
@@ -191,22 +231,28 @@ class ApitorGui:
         pk = self.pressed_keys
         m1, m2 = 0, 0
         
-        # 1. Master WASD / Arrows
-        up = 'up' in pk or 'w' in pk
-        down = 'down' in pk or 's' in pk
-        left = 'left' in pk or 'a' in pk
-        right = 'right' in pk or 'd' in pk
-        
-        if up: m1, m2 = ms, ms
-        elif down: m1, m2 = -ms, -ms
-        elif left: m1, m2 = -ms, ms
-        elif right: m1, m2 = ms, -ms
-        
-        # 2. Individual Overrides (QZ for M1, EC for M2)
+        # 1. Pro Tank Layout (QA for Left, WS for Right)
         if 'q' in pk: m1 = m1_s
-        if 'z' in pk: m1 = -m1_s
-        if 'e' in pk: m2 = m2_s
-        if 'c' in pk: m2 = -m2_s
+        elif 'a' in pk: m1 = -m1_s
+        
+        if 'w' in pk: m2 = m2_s
+        elif 's' in pk: m2 = -m2_s
+        
+        # Independent Brakes (Z for Left, X for Right)
+        if 'z' in pk: m1 = 0
+        if 'x' in pk: m2 = 0
+        
+        # 2. Master Overrides (Arrows) - Only if not using independent track controls
+        if not (m1 or m2 or 'z' in pk or 'x' in pk):
+            up = 'up' in pk
+            down = 'down' in pk
+            left = 'left' in pk
+            right = 'right' in pk
+            
+            if up: m1, m2 = ms, ms
+            elif down: m1, m2 = -ms, -ms
+            elif left: m1, m2 = -ms, ms
+            elif right: m1, m2 = ms, -ms
         
         if 'space' in pk: m1, m2 = 0, 0
         self.robot.set_motors(m1, m2)
