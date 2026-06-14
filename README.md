@@ -1,12 +1,14 @@
-# Apitor Robot Controller (Python)
+# ApitorCommander
 
-A simple, modular Python application to control Apitor robots (like Robot X or SuperBot) over Bluetooth Low Energy (BLE).
+A comprehensive Python-based hardware command center for Apitor robots (SuperBot, Robot X, etc.) over Bluetooth Low Energy (BLE).
 
 ## Features
-- **Modular Design:** Split into a hardware controller (`apitor_robot.py`) and a graphical interface (`apitor_gui.py`).
-- **Real-time Sensors:** Displays distance sensor data directly in the GUI.
-- **Full Motor Control:** Individual and combined motor controls with adjustable speed.
-- **Auto-Handshake:** Handles the mandatory Apitor authentication and protocol initialization.
+- **Modular Hardware Console:** Dedicated panels for Battery, Dual Infrared Sensors, Motors, and LEDs.
+- **Visual Telemetry:** Real-time vertical bars for IR sensors and a battery fuel gauge.
+- **Precision Control:** Master speed slider plus independent speed controls for each motor.
+- **Granular LED Management:** Individual color selection for 4 RGB LEDs using full-label radio buttons.
+- **Traffic Log:** Built-in collapsible hex-log to monitor real-time BLE packets.
+- **Keyboard Mastery:** Full support for WASD/Arrows, numeric LED toggles, and system function keys.
 
 ## Setup Instructions
 
@@ -17,7 +19,7 @@ A simple, modular Python application to control Apitor robots (like Robot X or S
 ### 2. Installation
 Open your terminal in this folder and run:
 ```bash
-# Create a virtual environment (optional but recommended)
+# Create a virtual environment
 python -m venv .venv
 source .venv/bin/activate  # On Linux/Mac
 # .venv\Scripts\activate   # On Windows
@@ -26,47 +28,47 @@ source .venv/bin/activate  # On Linux/Mac
 pip install bleak
 ```
 
-## Usage
-1. Turn on your Apitor robot (ensure the blue LED is flashing).
-2. Run the application:
-   ```bash
-   python apitor_gui.py
-   ```
-3. Click **SCAN FOR ROBOT** to find your device, then **CONNECT**.
+### 3. Usage
 
-### Health Check (No UI)
-To run a quick automated test of your motors and LEDs without opening the GUI:
+#### Graphical Interface (GUI)
+Run the full command center:
+```bash
+python apitor_gui.py
+```
+1. Press **F1** to **SCAN** for your robot.
+2. Press **F2** to **CONNECT** once found.
+3. Drive using WASD or Arrows!
+
+#### Health Check (CLI)
+Run a quick automated hardware test without the UI:
 ```bash
 python health_check.py
 ```
 
 ### Keyboard Shortcuts
-- **W / S:** Move Forward / Backward
-- **A / D:** Turn Left / Right
-- **Space:** Stop All Motors
-- **1 - 8:** Quick Change LED Colors (Off, Red, Orange, etc.)
+- **W / S / A / D:** Master Drive (Forward, Backward, Left, Right)
+- **Arrow Keys:** Alternative Master Drive
+- **Q / E:** Motor 1 (Left) Forward / Backward
+- **I / K:** Motor 2 (Right) Forward / Backward
+- **1 - 4:** Toggle LED 1-4 On/Off
+- **Space:** Emergency STOP ALL
+- **F1 / F2 / F3:** Scan / Connect / Disconnect
 
+## Testing & Verification
+To ensure the code is stable and the logic is correct:
 
-## Testing
-To ensure the code is not broken, you can run the following checks:
-
-### 1. Syntax Check
-Verifies that the code is free of Python syntax errors:
+### Syntax Check
 ```bash
 python check_syntax.py
 ```
 
-### 2. Unit Tests
-Verifies the robot logic (speed clamping, inversion, etc.):
+### Logic Unit Tests
 ```bash
 python test_apitor_robot.py
 ```
 
-## Troubleshooting
-- **Connection Failed:** Ensure no other app (like the official Apitor app) is currently connected to the robot.
-- **Permissions:** On Linux, you may need to add your user to the `bluetooth` group or run with `sudo`.
-- **Wrong Robot:** If you have multiple robots, change the `ROBOT_MAC` address at the bottom of `apitor_gui.py`.
-
 ## Project Structure
-- `apitor_robot.py`: Core logic for Bluetooth communication and protocol.
-- `apitor_gui.py`: The user interface and event handling.
+- `apitor_robot.py`: Backend hardware abstraction and BLE protocol.
+- `apitor_gui.py`: Frontend modular command center.
+- `health_check.py`: CLI-based hardware verification tool.
+- `AGENTS.md`: Technical reference for AI contributors.
