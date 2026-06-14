@@ -34,6 +34,12 @@ pip install bleak
    ```
 3. Click **SCAN FOR ROBOT** to find your device, then **CONNECT**.
 
+### Health Check (No UI)
+To run a quick automated test of your motors and LEDs without opening the GUI:
+```bash
+python health_check.py
+```
+
 ### Keyboard Shortcuts
 - **W / S:** Move Forward / Backward
 - **A / D:** Turn Left / Right
